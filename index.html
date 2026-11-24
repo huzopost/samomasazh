@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карта болю</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday health helper: calm, friendly, clear
+   IDEA a pocket x-ray film from a massage clinic
+   PICTURE glowing body silhouette on deep green film, red pain glow, amber motion marks
+   COLOUR mint-white ground, forest green, film green, coral-red pain, amber hands
+   TYPE Manrope 800 + Manrope
+   LAYOUT one column app up to 640px; film first; step picture beside text above 560px, stacked below */
+:root{color-scheme:light dark;--bg:light-dark(#eef7f1,#08140f);--card:light-dark(#ffffff,#10231a);--ink:light-dark(#0f2a1e,#e3f2e9);--mute:light-dark(#4b6a5a,#9cbcab);--g:light-dark(#178a55,#3ecf8e);--on:light-dark(#ffffff,#06261a);--gt:light-dark(#dcf2e5,#16372a);--line:light-dark(#cde3d6,#24473a);--pain:#ff4b4b;--film:#0c2a1f}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 Manrope,system-ui,sans-serif;overflow-x:clip}
+.top{display:flex;align-items:center;gap:10px;padding:14px 16px 6px;max-width:640px;margin:0 auto}
+.logo{width:36px;height:36px;flex:none}
+.brand b{display:block;font-weight:800;font-size:17px;line-height:1.1}
+.brand span{font-size:13px;color:var(--mute)}
+main{max-width:640px;margin:0 auto;padding:0 16px 40px}
+h1{font-size:clamp(28px,6vw,40px);line-height:1.08;letter-spacing:-.02em;margin:8px 0 6px;text-wrap:balance;font-weight:800}
+h2{font-size:19px;margin:22px 0 10px;font-weight:800}
+.lead{color:var(--mute);margin:0 0 14px}
+.film{position:relative;background:var(--film);border-radius:22px;overflow:hidden;box-shadow:inset 0 0 0 1px #1f5a43}
+.film svg{display:block;width:100%;height:100%}
+.map{height:clamp(380px,62vh,560px)}
+.seg{position:absolute;top:12px;left:12px;display:flex;background:#0a2219d9;border-radius:999px;padding:4px;z-index:1}
+.seg button{border:0;background:none;color:#bfeed6;font:700 14px Manrope,sans-serif;padding:8px 14px;border-radius:999px;min-height:36px;cursor:pointer}
+.seg button[aria-pressed=true]{background:#3ecf8e;color:#06261a}
+.cap{position:absolute;left:12px;right:12px;bottom:10px;margin:0;color:#bfeed6;font-size:14px;text-align:center}
+.hit{fill:transparent;cursor:pointer;outline:none}
+.hit:hover,.hit:focus{fill:rgba(255,75,75,.24)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chip{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 14px;font:600 15px/1.3 Manrope,sans-serif;min-height:44px;cursor:pointer;text-align:left}
+.chip[aria-pressed=true]{background:var(--g);border-color:var(--g);color:var(--on)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:16px;padding:14px 18px;font:800 17px Manrope,sans-serif;min-height:54px;cursor:pointer;background:var(--g);color:var(--on)}
+.btn.ghost{background:var(--gt);color:var(--ink)}
+.btn[disabled]{opacity:.6;cursor:wait}
+.btn:focus-visible,.chip:focus-visible,.card:focus-visible,.seg button:focus-visible,.back:focus-visible,.tm:focus-visible,.mic:focus-visible{outline:3px solid #ffb703;outline-offset:2px}
+.row{display:grid;gap:10px;margin-top:14px}
+.back{border:0;background:none;color:var(--g);font:700 15px Manrope,sans-serif;padding:8px 0;min-height:44px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.card{display:block;text-align:left;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:18px;padding:8px;cursor:pointer;font:inherit}
+.card:hover{border-color:var(--g)}
+.card .film{height:130px;border-radius:12px}
+.card b{display:block;margin:8px 4px 0;font-size:16px}
+.card span{display:block;margin:0 4px 4px;font-size:13px;color:var(--mute);line-height:1.35}
+.panel{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:14px 16px}
+.head{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center}
+.head .film{height:96px;border-radius:14px}
+.head h1{font-size:clamp(24px,5vw,32px)}
+.range{display:flex;align-items:center;gap:14px}
+.range input{flex:1;accent-color:var(--pain);height:44px}
+.big{font-size:32px;font-weight:800;min-width:2.6em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
+.checks label:first-child{border-top:0}
+.checks input{width:22px;height:22px;flex:none;accent-color:var(--pain);margin:1px 0 0}
+.err{color:var(--pain);font-weight:700;min-height:1.4em;margin:8px 0 0}
+.sum .film{height:clamp(240px,40vh,360px)}
+.facts{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:8px}
+.facts li{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--card);border:1.5px solid var(--line);border-radius:14px}
+.facts li span{color:var(--mute);white-space:nowrap}
+.facts li b{text-align:right}
+.note{background:light-dark(#fff4e0,#2c2410);border-radius:14px;padding:12px 14px;margin-top:10px;font-size:15px}
+.stop{background:light-dark(#ffe9e9,#2e1212);border-radius:18px;padding:18px}
+.stop p{margin:8px 0 0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.meta span{background:var(--gt);border-radius:999px;padding:5px 12px;font-size:14px;font-weight:700}
+.step{display:grid;grid-template-columns:170px minmax(0,1fr);gap:14px;padding:12px;background:var(--card);border:1.5px solid var(--line);border-radius:18px;margin-bottom:12px}
+.step .film{height:170px;border-radius:12px}
+.step small{color:var(--g);font-weight:800;font-size:13px}
+.step h3{margin:2px 0 4px;font-size:18px;line-height:1.25}
+.step p{margin:0 0 10px;font-size:15.5px}
+.tm{border:1.5px solid var(--g);background:none;color:var(--g);border-radius:999px;padding:7px 14px;font:800 15px Manrope,sans-serif;min-height:42px;cursor:pointer;font-variant-numeric:tabular-nums}
+.tm.on{background:var(--g);color:var(--on)}
+textarea{width:100%;min-height:140px;border:1.5px solid var(--line);border-radius:16px;padding:14px;font:16px/1.5 Manrope,sans-serif;background:var(--card);color:var(--ink);resize:vertical}
+textarea:focus{outline:3px solid #ffb703}
+.vrow{display:flex;gap:12px;align-items:center;margin:12px 0}
+.mic{width:64px;height:64px;border-radius:50%;border:0;background:var(--pain);color:#fff;font-size:28px;cursor:pointer;flex:none}
+.mic.on{animation:beat 1s infinite}
+.live{color:var(--mute);font-style:italic}
+.fine{font-size:13px;color:var(--mute);margin-top:18px}
+.res{font-size:20px;font-weight:800;margin:10px 0;min-height:1em}
+.hot{animation:glow 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.fire{margin-left:auto;border:0;background:light-dark(#fff1d6,#33270c);color:light-dark(#9a5b00,#ffc95c);border-radius:999px;padding:8px 14px;font:800 16px Manrope,sans-serif;min-height:40px;cursor:pointer;white-space:nowrap}
+main{padding-bottom:110px}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--card);border-top:1.5px solid var(--line);padding:6px max(8px,env(safe-area-inset-left,0px)) max(8px,env(safe-area-inset-bottom,0px));z-index:5}
+.tabs button{border:0;background:none;color:var(--mute);font:700 12px Manrope,sans-serif;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;min-height:52px;cursor:pointer;border-radius:12px;font-size:22px}
+.tabs button span{font-size:12px}
+.tabs button[aria-current=page]{color:var(--g);background:var(--gt)}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:6;max-width:90vw;text-align:center}
+.kick{color:var(--g);font-weight:800;font-size:14px}
+.learn{background:light-dark(#e8f6ee,#13301f);border-radius:18px;padding:14px 16px;margin:10px 0 14px}
+.learn p{margin:4px 0 0}
+.sub{font-size:17px;margin:18px 0 10px}
+.goal{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px;align-items:start;text-align:left;width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:16px;cursor:pointer;font:inherit;margin-bottom:12px}
+.goal:hover{border-color:var(--g)}
+.goal .em{font-size:40px;line-height:1}
+.goal b{display:block;font-size:18px}
+.goal small{display:block;color:var(--g);font-weight:800;margin:2px 0 6px}
+.goal span{display:block;font-size:15px;color:var(--mute)}
+.prog{height:12px;border-radius:6px;background:var(--gt);overflow:hidden;margin-top:10px}
+.prog i{display:block;height:100%;background:var(--g);border-radius:6px}
+.path{display:flex;flex-direction:column;align-items:center;gap:20px;padding:16px 0 10px}
+.stage{width:100%;background:var(--g);color:var(--on);border-radius:16px;padding:12px 16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stage span{opacity:.85;font-weight:600}
+.node{display:flex;flex-direction:column;align-items:center;transform:translateX(var(--x,0))}
+.node button{width:76px;height:72px;border-radius:50%;border:0;font-size:30px;cursor:pointer;background:light-dark(#cfd8d3,#2a3d34);box-shadow:0 7px 0 light-dark(#a9b5ae,#1a2a23)}
+.node.done button{background:#3ecf8e;box-shadow:0 7px 0 #1f9d63}
+.node.cur button{background:#ffb703;box-shadow:0 7px 0 #c98a00;animation:bob 1.6s ease-in-out infinite}
+.node.wait button{background:light-dark(#ffe7b0,#4a3a12);box-shadow:0 7px 0 light-dark(#e0c27c,#2e240b)}
+.node span{margin-top:12px;font-size:13px;font-weight:700;color:var(--mute);text-align:center;max-width:150px;line-height:1.3}
+.node.cur span{color:var(--ink)}
+.win{text-align:center;padding:10px 0}
+.flame{font-size:86px;line-height:1.1}
+.wk{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:14px 0}
+.wk div{width:40px;text-align:center;font-size:12px;color:var(--mute);font-weight:700}
+.wk i{display:block;font-style:normal;font-size:24px}
+.banner{background:light-dark(#fff1d6,#33270c);border-radius:18px;padding:16px;margin:14px 0;text-align:left}
+.grad{background:linear-gradient(135deg,#178a55,#3ecf8e);color:#fff;border-radius:22px;padding:20px;text-align:left;margin:14px 0}
+.grad h2{margin:0 0 6px;font-size:22px}
+.grad p{margin:6px 0 0}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.stats div{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.stats b{display:block;font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:var(--mute);font-weight:700}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal div{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;font-size:13px;font-weight:700;background:light-dark(#e3ece6,#1a2c24);color:var(--mute)}
+.cal .wd{background:none;aspect-ratio:auto;padding-bottom:2px;font-size:12px}
+.cal .fut{background:none;border:1.5px dashed var(--line)}
+.cal .p0{background:#8fe3b8;color:#0f2a1e}.cal .p1{background:#ffe08a;color:#3b2a00}.cal .p2{background:#ffb36b;color:#3b1a00}.cal .p3{background:#ff6b6b;color:#2a0000}
+.cal .now{outline:2.5px solid var(--ink);outline-offset:1px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--mute);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:-1px}
+.bar{display:grid;grid-template-columns:9em minmax(0,1fr) 3.2em;gap:10px;align-items:center;margin:8px 0;font-size:15px}
+.bar i{display:block;height:14px;border-radius:7px;background:var(--pain);min-width:4px}
+.bar em{font-style:normal;text-align:right;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.log{list-style:none;padding:0;margin:0}
+.log li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.log li:first-child{border-top:0}
+.log b{white-space:nowrap}
+.insight{background:var(--gt);border-radius:14px;padding:12px 14px;margin:12px 0;font-weight:700}
+.linkbtn{border:0;background:none;color:var(--mute);text-decoration:underline;font:600 14px Manrope,sans-serif;padding:10px 0;min-height:44px;cursor:pointer}
+@keyframes bob{50%{transform:translateY(-4px)}}
+@keyframes glow{50%{opacity:.55;transform:scale(.85)}}
+@keyframes beat{50%{transform:scale(.92)}}
+@media(prefers-reduced-motion:reduce){.hot,.mic.on,.node.cur button{animation:none}}
+@media(max-width:560px){.step{grid-template-columns:1fr}.step .film{height:210px}}
+</style>
+</head>
+<body>
+<header class="top">
+<svg class="logo" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="18" fill="#178a55"/><path d="M11 25c0-9 6-14 15-14-1 9-6 14-15 14z" fill="#bff0d4"/><path d="M11 25l8-8" stroke="#178a55" stroke-width="1.8" stroke-linecap="round"/></svg>
+<div class="brand"><b>Rest &amp; Health</b><span>Карта болю · самомасаж</span></div>
+<button class="fire" id="fire" aria-label="Стрік днів поспіль">🔥 <b id="fn">0</b></button>
+</header>
+<main id="app"></main>
+<nav class="tabs" aria-label="Розділи"><button data-t="map">🗺️<span>Карта болю</span></button><button data-t="path">🎯<span>Мій шлях</span></button><button data-t="diary">📓<span>Щоденник</span></button></nav>
+<div class="toast" id="toast" role="status" hidden></div>
+<script>
+{
+const $=s=>document.querySelector(s);
+/* ---------- налаштування ---------- */
+const CONFIG={
+  bookUrl:'',   // посилання для запису до масажиста, напр. https://t.me/username
+  demo:false    // true — показати демо-кнопки (приклад щоденника, тестовий режим)
+};
+const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tg=(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData)?window.Telegram.WebApp:null;
+const CS=(tg&&tg.CloudStorage&&tg.isVersionAtLeast&&tg.isVersionAtLeast('6.9'))?tg.CloudStorage:null;
+const uname=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.first_name)||'';
+if(tg){try{tg.ready();tg.expand();document.documentElement.dataset.theme=tg.colorScheme==='dark'?'dark':'light';tg.setHeaderColor&&tg.setHeaderColor(tg.colorScheme==='dark'?'#08140f':'#eef7f1');tg.setBackgroundColor&&tg.setBackgroundColor(tg.colorScheme==='dark'?'#08140f':'#eef7f1')}catch(e){}}
+function book(){if(CONFIG.bookUrl&&tg){try{CONFIG.bookUrl.indexOf('https://t.me/')===0?tg.openTelegramLink(CONFIG.bookUrl):tg.openLink(CONFIG.bookUrl);return}catch(e){}}const p=$('#bookp');if(p)p.hidden=false}
+const M=$('#app');
+const FILM='#0c2a1f',LN='#7fe6b5',BD='#164b37',AM='#ffd166';
+const HF='40 4 120 100',HB='40 4 120 110',NB='40 50 120 90',UB='40 100 120 95',LB='40 205 120 100',AR='0 170 80 155',FT='40 462 120 56',LG='40 300 120 200',KB='40 165 120 145',CV='40 88 120 100';
+
+const ZONES=[
+{id:'head',n:'Голова',em:'🤕'},{id:'neck',n:'Шия й плечі',em:'💆'},{id:'chest',n:'Груди',em:'💪'},{id:'upper',n:'Верх спини',em:'🎒'},
+{id:'belly',n:'Живіт',em:'🌀'},{id:'lower',n:'Поперек і сідниці',em:'🪑'},{id:'arm',n:'Рука й кисть',em:'🖱️'},{id:'legs',n:'Ноги',em:'🦵'},{id:'feet',n:'Стопи',em:'🦶'}];
+const zn=id=>(ZONES.find(z=>z.id===id)||{}).n||'';
+
+const SP=[
+{id:'h_temple',z:'head',n:'Скроні',h:'Тисне з боків голови',v:'front',vb:HF,p:[[71,42],[129,42]],r:8},
+{id:'h_forehead',z:'head',n:'Лоб',h:'Над бровами, по всій ширині',v:'front',vb:HF,p:[[100,25]],r:11},
+{id:'h_eyes',z:'head',n:'Очі й перенісся',h:'Важкість навколо очей',v:'front',vb:HF,p:[[100,41]],r:7},
+{id:'h_occ',z:'head',n:'Потилиця',h:'Біля основи черепа',v:'back',vb:HB,p:[[88,74],[112,74]],r:8},
+{id:'n_back',z:'neck',n:'Задня частина шиї',h:'Скутість, важко повертати голову',v:'back',vb:NB,p:[[94,90],[106,90]],r:7},
+{id:'n_side',z:'neck',n:'Бік шиї',h:'Тягне збоку до плеча',v:'back',vb:NB,p:[[89,95]],r:7},
+{id:'n_trap',z:'neck',n:'Верх плечей',h:'«Камінь» між шиєю й плечем',v:'back',vb:NB,p:[[72,106],[128,106]],r:10},
+{id:'b_mid',z:'upper',n:'Між лопатками',h:'Пече чи тисне після комп’ютера',v:'back',vb:UB,p:[[90,142],[110,142]],r:9},
+{id:'b_scap',z:'upper',n:'Під лопаткою',h:'Точка, яку важко дістати',v:'back',vb:UB,p:[[78,158]],r:9},
+{id:'l_low',z:'lower',n:'Поперек',h:'Ниє після сидіння чи стояння',v:'back',vb:LB,p:[[88,248],[112,248]],r:10},
+{id:'l_glute',z:'lower',n:'Сідниці',h:'Глибока напружена точка',v:'back',vb:LB,p:[[82,284],[118,284]],r:10},
+{id:'a_fore',z:'arm',n:'Передпліччя',h:'Від мишки, телефону, спорту',v:'front',vb:AR,p:[[35,232]],r:10},
+{id:'a_hand',z:'arm',n:'Долоня й кисть',h:'Втома кисті й пальців',v:'front',vb:AR,p:[[30,302]],r:8},
+{id:'f_sole',z:'feet',n:'Підошва й п’ята',h:'Після довгого стояння',v:'front',vb:FT,p:[[76,496],[124,496]],r:8},
+{id:'c_pec',z:'chest',n:'Груди під ключицями',h:'Напруга від сутулості, плечі «тягне» вперед',v:'front',vb:CV,p:[[78,128],[122,128]],r:10},
+{id:'k_belly',z:'belly',n:'Живіт навколо пупка',h:'Здуття, важкість, «крутить»',v:'front',vb:KB,p:[[100,232]],r:16},
+{id:'k_low',z:'belly',n:'Низ живота',h:'Спазми, тягне внизу',v:'front',vb:KB,p:[[100,272]],r:13},
+{id:'g_thigh',z:'legs',n:'Стегно спереду',h:'Втома після ходьби, сходів, спорту',v:'front',vb:LG,p:[[81,345],[119,345]],r:10},
+{id:'g_knee',z:'legs',n:'Навколо коліна',h:'Тягне над коліном і з боків',v:'front',vb:LG,p:[[80,392],[120,392]],r:8},
+{id:'g_ham',z:'legs',n:'Задня поверхня стегна',h:'Тягне ззаду, коли нахиляєтеся',v:'back',vb:LG,p:[[81,345],[119,345]],r:10},
+{id:'g_calf',z:'legs',n:'Литки',h:'Важкість, втома, судоми',v:'back',vb:LG,p:[[79,440],[121,440]],r:9}];
+const spot=id=>SP.find(s=>s.id===id);
+
+const CH={press:'Стискає, тисне',pulse:'Пульсує',ache:'Тупий, ниє',stiff:'Скутість, «забито»',sharp:'Гострий, стріляє',bloat:'Здуття, розпирає',cramp:'Спазми, судоми'};
+const CHZ={head:['press','pulse','ache','sharp'],belly:['bloat','cramp','ache','sharp'],legs:['ache','stiff','cramp','sharp'],def:['ache','stiff','sharp']};
+const DUR={today:'Сьогодні',days:'Кілька днів',weeks:'Тижні й довше'};
+const FL={trauma:'Біль після травми, падіння чи удару',numb:'Оніміння, поколювання або слабкість у руці чи нозі',fever:'Температура або сильна загальна слабкість',worst:'Раптовий, найсильніший у житті біль',vision:'Порушення зору чи мови, «перекошене» обличчя',chest:'Біль у грудях, задишка, віддає в ліву руку чи щелепу',pelvic:'Порушення сечовипускання чи оніміння в паху',vomit:'Нудота, блювання або кров у випорожненнях',rlq:'Біль праворуч унизу живота або твердий, напружений живіт',preg:'Вагітність або можлива вагітність',swell:'Набряк, почервоніння чи гаряча на дотик ділянка, особливо на литці',bellysev:'Сильний або гострий біль у животі'};
+const FLZ={head:['worst','vision','trauma','fever'],neck:['trauma','numb','chest','fever'],chest:['chest','trauma','fever'],upper:['chest','trauma','numb'],belly:['vomit','rlq','fever','preg','trauma'],lower:['pelvic','numb','trauma','fever'],arm:['numb','trauma'],legs:['swell','trauma','numb'],feet:['trauma','numb','swell']};
+
+const G={
+h_temple:[
+{t:'Підготуйтеся',d:'Сядьте рівно, опустіть плечі, зробіть 3 повільні видихи. Зуби не стискайте.',s:20,m:[]},
+{t:'Кола на скронях',d:'Подушечки вказівного й середнього пальців на скронях. Повільні кола назад, легкий тиск без болю.',s:30,m:[['c',71,42,7],['c',129,42,7]]},
+{t:'Над вухами',d:'Перемістіть пальці на 2 см вище, ближче до вух. Ще 30 секунд кіл.',s:30,m:[['c',69,31,7],['c',131,31,7]]},
+{t:'Зніміть напругу назад',d:'Проведіть пальцями від скронь за вуха до потилиці 5 разів, ніби розчісуєте волосся.',s:20,m:[['l',72,40,64,64],['l',128,40,136,64]]}],
+h_forehead:[
+{t:'Розгладжування',d:'Пальці обох рук посередині лоба. Ведіть від центру до скронь 10 разів.',s:30,m:[['l',97,25,72,33],['l',103,25,128,33]]},
+{t:'Кола над бровами',d:'Маленькі кола подушечками пальців уздовж брів, від центру назовні.',s:30,m:[['c',88,32,6],['c',112,32,6]]},
+{t:'Пощипування брів',d:'Легко візьміть брову великим і вказівним пальцями й пройдіться від перенісся до краю. 5 разів.',s:20,m:[['l',93,37,78,38],['l',107,37,122,38]]}],
+h_eyes:[
+{t:'Тепло долонь',d:'Закрийте очі, потріть долоні до тепла й прикладіть до очей на 20 секунд. На очі не тисніть.',s:20,m:[]},
+{t:'Точки біля перенісся',d:'Великими пальцями м’яко натисніть під внутрішні кінці брів. Тримайте 5 секунд, повторіть 5 разів.',s:30,m:[['p',94,39],['p',106,39]]},
+{t:'Брови назовні',d:'Розгладжуйте брови від центру до скронь 10 разів.',s:20,m:[['l',94,38,76,40],['l',106,38,124,40]]},
+{t:'Скроні',d:'Завершіть 20 секундами повільних кіл на скронях.',s:20,m:[['c',71,42,7],['c',129,42,7]]}],
+h_occ:[
+{t:'Знайдіть ямки',d:'Покладіть пальці на потилицю й опустіть їх до краю черепа. По боках від центру є дві м’які ямки.',s:15,m:[['p',88,74],['p',112,74]]},
+{t:'Натискання',d:'Натисніть подушечками на ямки й тримайте 10 секунд, дихаючи. Повторіть 5 разів.',s:50,m:[['p',88,74],['p',112,74]]},
+{t:'Кола вздовж черепа',d:'Маленькими колами пройдіться вздовж краю черепа від центру до вух.',s:30,m:[['c',84,72,6],['c',116,72,6],['l',90,76,70,70],['l',110,76,130,70]]},
+{t:'Розтяжка',d:'Опустіть підборіддя до грудей, руки на потилиці без тиску. Тримайте 20 секунд.',s:20,m:[['l',100,58,100,92]]}],
+n_back:[
+{t:'Поставте пальці',d:'Пальці обох рук за шию по боках хребта. На самі хребці не тисніть.',s:10,m:[['p',94,90],['p',106,90]]},
+{t:'Кола зверху вниз',d:'Повільні кола від потилиці до плечей. Тиск середній, приємний.',s:40,m:[['c',94,84,4.5],['c',106,84,4.5],['l',94,90,94,104],['l',106,90,106,104]]},
+{t:'Розминання',d:'Візьміть м’язи шиї долонею й м’яко стискайте-відпускайте 10 разів.',s:30,m:[['p',100,92]]},
+{t:'Повороти',d:'Повільно поверніть голову вправо й уліво по 5 разів, без ривків.',s:20,m:[]}],
+n_side:[
+{t:'Нахиліть голову',d:'Злегка нахиліть голову в бік, протилежний болю.',s:10,m:[]},
+{t:'Погладжування',d:'Протилежною рукою гладьте бічну й задню частину шиї від вуха до плеча 10 разів. Передню частину шиї не масажуйте.',s:30,m:[['l',89,84,74,105]]},
+{t:'Утримання точки',d:'Знайдіть найнапруженішу точку збоку й тримайте легкий тиск 20 секунд.',s:20,m:[['p',89,95]]},
+{t:'Інший бік',d:'Повторіть з іншого боку, щоб вирівняти напругу.',s:30,m:[['l',111,84,126,105]]}],
+n_trap:[
+{t:'Захопіть м’яз',d:'Праву руку покладіть на ліве плече й візьміть м’яз між пальцями та долонею.',s:10,m:[['p',72,106]]},
+{t:'Стисніть і відпустіть',d:'Стискайте на 3 секунди й відпускайте. 10 повторів, рухаючись від шиї до плеча.',s:40,m:[['l',86,104,60,110]]},
+{t:'Найболючіша точка',d:'Натисніть на точку напруги й тримайте 20–30 секунд, поки вона не «відпустить».',s:30,m:[['p',72,106]]},
+{t:'Інший бік і плечі',d:'Повторіть на правому плечі. Наостанок 10 обертань плечима назад.',s:30,m:[['p',128,106],['c',128,106,9]]}],
+b_mid:[
+{t:'Візьміть м’яч',d:'Тенісний або масажний м’яч. Станьте спиною до стіни, м’яч між лопаткою й хребтом.',s:15,m:[['b',90,142]]},
+{t:'Катайте',d:'Злегка присідайте й піднімайтеся, щоб м’яч котився вздовж лопатки.',s:60,m:[['b',90,142],['l',90,124,90,164]]},
+{t:'Затримайтеся на точці',d:'Знайшли напружену точку? Зупиніться й тримайте тиск 20–30 секунд, глибоко дихайте.',s:30,m:[['b',90,142]]},
+{t:'Інший бік',d:'Перекладіть м’яч на інший бік від хребта й повторіть. На сам хребет м’яч не ставте.',s:60,m:[['b',110,142],['l',110,124,110,164]]}],
+b_scap:[
+{t:'Відкрийте лопатку',d:'Обійміть себе рукою за протилежне плече. Так лопатка відходить і точка стає доступною.',s:10,m:[]},
+{t:'М’яч під лопатку',d:'Спиною до стіни, м’яч під краєм лопатки. Робіть тілом маленькі кола.',s:40,m:[['b',78,158],['c',78,158,10]]},
+{t:'Утримання',d:'На найнапруженішій точці тримайте тиск 20–30 секунд.',s:30,m:[['b',78,158]]}],
+l_low:[
+{t:'Ляжте на спину',d:'Коліна зігнуті, стопи на підлозі. Два м’ячі в шкарпетці покладіть під поперек по обидва боки хребта.',s:15,m:[['b',88,248],['b',112,248]]},
+{t:'Перекочування',d:'Повільно рухайте тазом угору-вниз на 3–5 см, щоб м’ячі прокочували м’язи.',s:60,m:[['l',88,230,88,268],['l',112,230,112,268]]},
+{t:'Розтирання кулаками',d:'Без м’ячів: стоячи, розтирайте м’язи вздовж хребта тильною стороною кулаків.',s:30,m:[['c',88,248,8],['c',112,248,8]]},
+{t:'Коліна до грудей',d:'Лежачи, підтягніть коліна до грудей і тримайте 30 секунд.',s:30,m:[]}],
+l_glute:[
+{t:'Сядьте на м’яч',d:'Сядьте на підлогу, м’яч під сідницю з боку болю. Руками спирайтеся позаду.',s:15,m:[['b',82,284]]},
+{t:'Катайте',d:'Повільно перекочуйтеся, щоб знайти найнапруженішу точку.',s:60,m:[['b',82,284],['c',82,284,11]]},
+{t:'Утримання',d:'На точці тримайте тиск 20–30 секунд, дихайте. Якщо «простріл» віддає в ногу, зупиніться.',s:30,m:[['b',82,284]]},
+{t:'Розтяжка «четвірка»',d:'Лежачи на спині, покладіть щиколотку на протилежне коліно й підтягніть ногу до себе. 30 секунд.',s:30,m:[]}],
+a_fore:[
+{t:'Рука на столі',d:'Покладіть руку на стіл долонею вниз, розслабте пальці.',s:10,m:[]},
+{t:'Погладжування',d:'Великим пальцем іншої руки ведіть від зап’ястя до ліктя 10 разів.',s:30,m:[['l',32,284,39,200]]},
+{t:'Кола по м’язу',d:'Маленькими колами пройдіться по найтвердішому місцю передпліччя.',s:40,m:[['c',35,232,8]]},
+{t:'Розтяжка',d:'Витягніть руку вперед і іншою рукою м’яко потягніть пальці на себе. 20 секунд.',s:20,m:[]}],
+a_hand:[
+{t:'Точка між пальцями',d:'Великим і вказівним пальцями затисніть м’яку ділянку між великим і вказівним пальцями іншої руки.',s:10,m:[['p',30,300]]},
+{t:'Тиск',d:'Тисніть 10 секунд і відпускайте. 5 повторів. Якщо ви вагітні, цю точку пропустіть.',s:50,m:[['p',30,300]]},
+{t:'Розтирання долоні',d:'Великим пальцем розтирайте долоню по колу, від центру до основи пальців.',s:30,m:[['c',30,306,6]]},
+{t:'Струсніть',d:'Розслабте й легко струсніть кисті 10 секунд.',s:10,m:[]}],
+f_sole:[
+{t:'М’яч під стопу',d:'Сядьте й поставте стопу на тенісний або масажний м’яч.',s:10,m:[['b',76,496]]},
+{t:'Від п’яти до пальців',d:'Повільно катайте м’яч від п’яти до пальців і назад.',s:60,m:[['l',66,496,88,496]]},
+{t:'Склепіння стопи',d:'Великими пальцями рук розтирайте середину стопи по колу.',s:30,m:[['c',76,496,6]]},
+{t:'Друга стопа',d:'Повторіть усе з другою стопою.',s:60,m:[['b',124,496],['l',114,496,136,496]]}],
+c_pec:[
+{t:'Знайдіть м’яз',d:'Покладіть пальці під ключицю, ближче до плеча. Тут м’яз, який «стягує» плечі вперед.',s:10,m:[['p',78,128]]},
+{t:'Кола від центру до плеча',d:'Пальцями протилежної руки робіть повільні кола, рухаючись від грудини до плеча.',s:40,m:[['c',86,127,7],['l',96,124,70,132]]},
+{t:'Утримання точки',d:'Натисніть на найнапруженішу точку біля плеча й тримайте 20 секунд, дихаючи.',s:20,m:[['p',74,132]]},
+{t:'Розкрийте груди',d:'Зчепіть руки за спиною, зведіть лопатки й підніміть груди. 20 секунд. Потім повторіть масаж з іншого боку.',s:20,m:[['p',122,128]]}],
+k_belly:[
+{t:'Ляжте зручно',d:'На спину, коліна зігнуті, живіт розслаблений. Масажуйте не раніше ніж через 1–2 години після їжі.',s:20,m:[]},
+{t:'Тепло долонь',d:'Потріть долоні й покладіть на живіт на 20 секунд. Дихайте животом.',s:20,m:[['p',100,232]]},
+{t:'Кола за годинниковою стрілкою',d:'Долонею робіть повільні великі кола навколо пупка за годинниковою стрілкою (якщо дивитися на свій живіт згори). Тиск легкий.',s:60,m:[['cc',100,232,22]]},
+{t:'Погладжування рамкою',d:'Ведіть долонею вгору правим боком живота, поперек під ребрами й униз лівим боком. 10 разів.',s:40,m:[['l',80,268,80,206],['l',83,200,117,200],['l',120,206,120,268]]}],
+k_low:[
+{t:'Тепло',d:'Покладіть на низ живота теплу (не гарячу) грілку або долоні на 1–2 хвилини.',s:60,m:[['p',100,272]]},
+{t:'М’які кола',d:'Долонею робіть повільні кола на низу живота з дуже легким тиском.',s:60,m:[['cc',100,272,14]]},
+{t:'Поперек',d:'Спазми часто віддають у поперек. Розітріть поперек тильною стороною кулаків 30 секунд.',s:30,m:[]},
+{t:'Поза дитини',d:'Станьте на коліна, сядьте на п’яти й нахиліться вперед, руки витягніть. Дихайте спокійно 30–60 секунд.',s:45,m:[]}],
+g_thigh:[
+{t:'Сядьте',d:'Сядьте, ногу випряміть і розслабте.',s:10,m:[]},
+{t:'Розтирання долонями',d:'Долонями розтирайте стегно від коліна вгору 10 разів.',s:30,m:[['l',81,382,81,318]]},
+{t:'Розминання',d:'Захоплюйте м’яз пальцями й м’яко стискайте, рухаючись угору.',s:40,m:[['c',81,345,8]]},
+{t:'Ролер або м’яч',d:'Лежачи на животі, покатайте передню частину стегна на ролері чи м’ячі 60 секунд.',s:60,m:[['b',81,350]]}],
+g_knee:[
+{t:'Навколо, не на суглоб',d:'Масажуйте м’язи над коліном і з боків. На саму колінну чашечку не тисніть.',s:10,m:[['p',80,378]]},
+{t:'Над коліном',d:'Великими пальцями робіть кола на 3–5 см вище коліна.',s:40,m:[['c',80,378,6],['c',120,378,6]]},
+{t:'З боків',d:'Легко розтирайте боки коліна вгору-вниз.',s:30,m:[['l',71,410,71,384],['l',89,410,89,384]]},
+{t:'Розминка',d:'Сидячи, 10 разів повільно розгинайте й згинайте ногу.',s:30,m:[]}],
+g_ham:[
+{t:'Сядьте на край стільця',d:'Нога пряма, п’ята на підлозі.',s:10,m:[]},
+{t:'Розтирання',d:'Долонями розтирайте задню поверхню стегна від коліна до сідниці.',s:30,m:[['l',81,385,81,316]]},
+{t:'М’яч під стегно',d:'Сидячи на твердому стільці, покладіть м’яч під стегно й повільно згинайте-розгинайте ногу.',s:60,m:[['b',81,345]]},
+{t:'Розтяжка',d:'Поставте п’яту на сходинку й нахиліться вперед з рівною спиною. 30 секунд.',s:30,m:[]}],
+g_calf:[
+{t:'Сядьте зручно',d:'Сядьте, ногу зігніть, стопа на підлозі.',s:10,m:[]},
+{t:'Погладжування вгору',d:'Долонями ведіть від п’яти до коліна 10 разів, завжди знизу вгору.',s:30,m:[['l',79,470,80,416]]},
+{t:'Розминання',d:'Захоплюйте литковий м’яз і м’яко стискайте, рухаючись угору.',s:40,m:[['c',79,440,7]]},
+{t:'Розтяжка',d:'Упріться руками в стіну, ногу відставте назад, п’ята на підлозі. 30 секунд.',s:30,m:[]}]
+};
+
+const EX=['Другий день тисне в скронях, наче обруч, десь на 6 з 10','Після роботи за комп’ютером ниє між лопатками','Забиті плечі й шия, важко повернути голову','Болить підошва після довгого стояння'];
+
+const fresh=()=>({v:'back',z:null,spot:null,ch:null,inten:5,dur:null,fl:[],after:null,fromVoice:false,text:''});
+let st=fresh();
+st.v='front';
+let uid=0;
+
+let GRID='';
+for(let x=-40;x<=240;x+=20)GRID+=`M${x} -40V560`;
+for(let y=-40;y<=560;y+=20)GRID+=`M-40 ${y}H240`;
+const SH='<ellipse cx="100" cy="48" rx="30" ry="36"/><rect x="88" y="78" width="24" height="26" rx="6"/><path d="M60 104Q100 92 140 104Q156 110 154 130L146 200Q140 240 134 255Q142 280 140 300L60 300Q58 280 66 255Q60 240 54 200L46 130Q44 110 60 104Z"/><ellipse cx="30" cy="305" rx="9" ry="14"/><ellipse cx="170" cy="305" rx="9" ry="14"/><ellipse cx="76" cy="496" rx="14" ry="8"/><ellipse cx="124" cy="496" rx="14" ry="8"/>';
+const LIMB='M50 116Q36 190 32 290M150 116Q164 190 168 290M82 298L78 488M118 298L122 488';
+const DET={
+front:'<path d="M86 44h8M106 44h8M100 47v9M92 64q8 4 16 0M84 37q6-3 11 0M105 37q6-3 11 0M72 108q14 6 26 2M128 108q-14 6-26 2M70 140q30 10 60 0M68 160q32 10 64 0M70 180q30 10 60 0M74 400h10M116 400h10"/>',
+back:'<path d="M80 72q20 9 40 0M70 124q12-6 22 4q-2 22-14 32q-10-14-8-36ZM130 124q-12-6-22 4q2 22 14 32q10-14 8-36ZM64 262q36 14 72 0M100 282v18M74 400h10M116 400h10"/><path d="M100 104V296" stroke-dasharray="3 4"/>'};
+
+function body(v){
+return `<g fill="none" stroke="${LN}" stroke-opacity=".9" stroke-width="3">${SH}</g><path d="${LIMB}" stroke="${LN}" stroke-opacity=".9" stroke-width="25" stroke-linecap="round" fill="none"/><g fill="${BD}">${SH}</g><path d="${LIMB}" stroke="${BD}" stroke-width="20" stroke-linecap="round" fill="none"/><g fill="none" stroke="${LN}" stroke-opacity=".55" stroke-width="1.2" stroke-linecap="round">${DET[v]}</g>`;
+}
+function mk(m,id){
+return (m||[]).map(k=>{
+const t=k[0],a=k[1],b=k[2],c=k[3],d=k[4];
+if(t==='c')return `<circle cx="${a}" cy="${b}" r="${c}" fill="none" stroke="${AM}" stroke-width="1.5" stroke-dasharray="3 2.4"/><path d="M${a-2.5} ${b-c}H${a+1}" stroke="${AM}" stroke-width="1.5" marker-end="url(#${id}a)"/>`;
+if(t==='cc')return `<circle cx="${a}" cy="${b}" r="${c}" fill="none" stroke="${AM}" stroke-width="1.5" stroke-dasharray="3 2.4"/><path d="M${a+2.5} ${b-c}H${a-1}" stroke="${AM}" stroke-width="1.5" marker-end="url(#${id}a)"/>`;
+if(t==='p')return `<circle cx="${a}" cy="${b}" r="8" fill="none" stroke="${AM}" stroke-opacity=".45" stroke-width="1"/><circle cx="${a}" cy="${b}" r="4.6" fill="none" stroke="${AM}" stroke-width="1.2"/><circle cx="${a}" cy="${b}" r="2.2" fill="${AM}"/>`;
+if(t==='l')return `<path d="M${a} ${b}L${c} ${d}" stroke="${AM}" stroke-width="1.8" stroke-linecap="round" marker-end="url(#${id}a)"/>`;
+if(t==='b')return `<circle cx="${a}" cy="${b}" r="6" fill="${AM}" stroke="#8a6400" stroke-width=".8"/><path d="M${a-5.4} ${b-1}q5.4 -4 10.8 0" stroke="#8a6400" stroke-width=".7" fill="none"/>`;
+return '';
+}).join('');
+}
+function fig(v,vb,pts,r,m,extra,label){
+const id='f'+(++uid);
+const hot=(pts||[]).map(p=>`<circle class="hot" cx="${p[0]}" cy="${p[1]}" r="${r*1.9}" fill="url(#${id}h)"/><circle cx="${p[0]}" cy="${p[1]}" r="${(r*.32).toFixed(1)}" fill="#ff7a7a"/>`).join('');
+return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${label||''}"><defs><radialGradient id="${id}h"><stop offset="0" stop-color="#ff4b4b" stop-opacity=".95"/><stop offset=".5" stop-color="#ff4b4b" stop-opacity=".5"/><stop offset="1" stop-color="#ff4b4b" stop-opacity="0"/></radialGradient><marker id="${id}a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3.4" markerHeight="3.4" orient="auto"><path d="M0 0L10 5L0 10z" fill="${AM}"/></marker></defs><rect x="-60" y="-60" width="320" height="660" fill="${FILM}"/><path d="${GRID}" stroke="${LN}" stroke-opacity=".07" stroke-width=".5"/>${body(v)}${hot}${mk(m,id)}${extra||''}</svg>`;
+}
+const spotFig=(s,m)=>fig(s.v,s.vb,s.p,s.r,m,'',s.n);
+const chip=(k,l,on)=>`<button class="chip" data-k="${k}" aria-pressed="${!!on}">${l}</button>`;
+
+let tmr=null,tb=null;
+function stopT(){
+if(tmr){clearInterval(tmr);tmr=null}
+if(tb){tb.classList.remove('on');tb.textContent='▶ '+tb.dataset.s+' с'}
+tb=null;
+}
+function top(tab){stopT();window.scrollTo(0,0);setTab(tab||'map')}
+let curTab='map';
+function setTab(t){curTab=t;document.querySelectorAll('.tabs button').forEach(b=>{if(b.dataset.t===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')})}
+function stepHTML(s,x,i,n){return `<article class="step"><div class="film">${spotFig(s,x.m)}</div><div><small>Крок ${i+1} з ${n}</small><h3>${x.t}</h3><p>${x.d}</p><button class="tm" data-s="${x.s}">▶ ${x.s} с</button></div></article>`}
+function bindTimers(){
+M.querySelectorAll('.tm').forEach(b=>{b.onclick=()=>{
+if(tb===b){stopT();return}
+stopT();tb=b;let left=+b.dataset.s;b.classList.add('on');b.textContent='⏸ '+left+' с';
+tmr=setInterval(()=>{left--;if(left<=0){clearInterval(tmr);tmr=null;b.classList.remove('on');b.textContent='✓ Готово';tb=null;return}b.textContent='⏸ '+left+' с'},1000);
+}});
+}
+let tt=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{t.hidden=true},2600)}
+
+/* ---------- збереження: стрік, щоденник, курс ---------- */
+const KEY='rh-pain-v1';
+const blank=()=>({course:null,active:[],diary:[],mins:0,demo:false,ts:0});
+let D=load();
+function norm(v){const b=blank();if(v&&typeof v==='object'){for(const k in b)if(v[k]!==undefined)b[k]=v[k]}if(!Array.isArray(b.active))b.active=[];if(!Array.isArray(b.diary))b.diary=[];if(b.diary.length>300)b.diary=b.diary.slice(-300);if(b.active.length>400)b.active=b.active.slice(-400);return b}
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&typeof v==='object')return norm(v)}catch(e){}return blank()}
+let cst=null;
+function cloudSave(){if(!CS)return;clearTimeout(cst);cst=setTimeout(()=>{try{const s=JSON.stringify(D),parts=[];for(let i=0;i<s.length;i+=3500)parts.push(s.slice(i,i+3500));let left=parts.length;parts.forEach((p,i)=>CS.setItem('d'+i,p,()=>{if(--left===0)CS.setItem('dn',String(parts.length))}))}catch(e){}},500)}
+function cloudLoad(done){if(!CS)return;try{CS.getItem('dn',(e,n)=>{n=parseInt(n||'0',10);if(e||!n)return;const keys=[];for(let i=0;i<n;i++)keys.push('d'+i);CS.getItems(keys,(e2,v)=>{if(e2||!v)return;try{const o=JSON.parse(keys.map(k=>v[k]||'').join(''));if(o&&(o.ts||0)>(D.ts||0)){D=norm(o);try{localStorage.setItem(KEY,JSON.stringify(D))}catch(x){}hdr();done()}}catch(x){}})})}catch(e){}}
+function save(){D.ts=Date.now();try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}cloudSave();hdr()}
+function ds(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+const today=()=>ds(new Date());
+function pd(s){const a=String(s).split('-').map(Number);return new Date(a[0],a[1]-1,a[2])}
+function addDays(s,n){const x=pd(s);x.setDate(x.getDate()+n);return ds(x)}
+const WD=['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
+const WDL=['неділя','понеділок','вівторок','середа','четвер','пʼятниця','субота'];
+function markActive(){const t=today();if(!D.active.includes(t)){D.active.push(t);D.active.sort()}save()}
+function streak(){const set=new Set(D.active);let t=today();if(!set.has(t))t=addDays(t,-1);let n=0;while(set.has(t)){n++;t=addDays(t,-1)}return n}
+function best(){const a=[...new Set(D.active)].sort();let b=0,c=0,p=null;for(const x of a){c=(p&&addDays(p,1)===x)?c+1:1;if(c>b)b=c;p=x}return b}
+function logPain(id,inten,ch,src){D.diary.push({d:today(),spot:spot(id)?id:null,inten:Math.max(0,Math.min(10,Number(inten)||0)),ch:CH[ch]?ch:null,src:src});if(D.diary.length>600)D.diary.shift();save()}
+function hdr(){const f=$('#fn');if(f)f.textContent=String(streak());const b=$('#fire');if(b)b.style.opacity=D.active.includes(today())?'1':'.65'}
+function weekStrip(){let h='';for(let i=6;i>=0;i--){const d=addDays(today(),-i);const on=D.active.includes(d);h+=`<div><i>${on?'🔥':'⚪'}</i>${WD[pd(d).getDay()]}</div>`}return `<div class="wk">${h}</div>`}
+
+/* ---------- курси в стилі Duolingo ---------- */
+const COURSES=[
+{id:'neck',em:'🧣',n:'Шия без болю',goal:'Позбутися болю',len:7,area:'шия',promise:'За 7 днів поспіль ви повністю розберетеся, як позбутися болю в шиї й піклуватися про неї самостійно.',stages:[['Знайомство з болем',2],['Техніки',3],['Самостійність',2]],days:[
+{t:'Звідки біль у шиї',l:'Найчастіше шия болить від пози «голова вперед» за екраном. Сьогодні вчимося розслабляти задню частину шиї.',s:['n_back']},
+{t:'Плечі тримають шию',l:'Верх плечей напружується разом із шиєю. Відпустите плечі, і шиї стане легше.',s:['n_trap']},
+{t:'Потилиця і голова',l:'Напруга біля основи черепа часто дає ще й головний біль. Звільняємо цю зону.',s:['h_occ','n_back']},
+{t:'Бокова напруга',l:'Бік шиї тягне, коли довго тримаєте телефон біля вуха чи спите на високій подушці.',s:['n_side','n_trap']},
+{t:'Причина спереду',l:'Стиснуті груди тягнуть плечі вперед, і шия працює за двох. Розкриваємо груди.',s:['c_pec','n_back']},
+{t:'Своя рутина',l:'Ви вже знаєте 5 технік. Сьогодні збираємо їх у повну рутину, яку можна робити самостійно.',s:['n_back','n_trap','h_occ']},
+{t:'Іспит: я вмію сам(а)',l:'Фінальний день: повторюємо все й оцінюємо результат. Після нього ви знаєте, як зняти біль у шиї без сторонньої допомоги.',s:['n_trap','n_side','c_pec']}]},
+{id:'back',em:'🎒',n:'Спина без болю',goal:'Позбутися болю',len:14,area:'спина',promise:'За 14 днів поспіль ви повністю розберетеся, як позбутися болю в спині й попереку та підтримувати спину самостійно.',stages:[['Верх спини',4],['Поперек',5],['Уся спина',5]],days:[
+{t:'Чому пече між лопатками',l:'Сутулість розтягує м’язи між лопатками, і вони весь час напружені. Вчимося працювати м’ячем біля стіни.',s:['b_mid']},
+{t:'Точка під лопаткою',l:'Під краєм лопатки ховаються точки, що дають тупий біль. Вчимося знаходити їх самостійно.',s:['b_scap']},
+{t:'Груди тягнуть спину',l:'Стиснуті груди тягнуть плечі вперед, а спина напружується. Розслабляємо обидві сторони.',s:['c_pec','b_mid']},
+{t:'Плечі й верх спини',l:'Трапеція з’єднує шию і спину. Звільняємо її, щоб верх спини «дихав».',s:['n_trap','b_mid']},
+{t:'Поперек: з чого почати',l:'Поперек найчастіше болить від довгого сидіння. М’яко розслабляємо м’язи вздовж хребта.',s:['l_low']},
+{t:'Сідниці й поперек',l:'Напружені сідничні м’язи часто «віддають» у поперек. Вчимося працювати з м’ячем.',s:['l_glute']},
+{t:'Задня поверхня стегна',l:'Тугі м’язи ззаду стегна тягнуть таз і навантажують поперек.',s:['l_low','g_ham']},
+{t:'Ланцюжок: сідниці й стегно',l:'Тіло працює ланцюжками: розслабляємо сідниці й задню поверхню стегна разом.',s:['l_glute','g_ham']},
+{t:'Рутина для попереку',l:'Збираємо техніки для попереку в одну рутину на 7 хвилин.',s:['l_low','l_glute']},
+{t:'Уся спина: верх і низ',l:'Спина працює як одне ціле. Сьогодні проходимо її зверху донизу.',s:['b_mid','l_low']},
+{t:'Глибокі точки',l:'Повертаємося до точок під лопаткою й у сідницях, тепер з довшим утриманням.',s:['b_scap','l_glute']},
+{t:'Постава',l:'Розкриваємо груди й розслабляємо спину, щоб легше було тримати поставу.',s:['c_pec','b_mid','l_low']},
+{t:'Офісна рутина',l:'Рутина після робочого дня: плечі, поперек, задня поверхня стегна.',s:['n_trap','l_low','g_ham']},
+{t:'Іспит: я вмію сам(а)',l:'Фінальний день: повна рутина для спини. Після нього ви знаєте, як самостійно знімати біль у спині.',s:['b_mid','l_low','l_glute']}]},
+{id:'head',em:'🤕',n:'Голова без напруги',goal:'Позбутися болю',len:7,area:'голова',promise:'За 7 днів поспіль ви повністю розберетеся, як знімати головний біль напруги самостійно, без масажиста.',stages:[['Знайомство',2],['Техніки',3],['Самостійність',2]],days:[
+{t:'Напруга в скронях',l:'Головний біль напруги часто сидить у скронях. Вчимося знімати його м’якими колами.',s:['h_temple']},
+{t:'Лоб і брови',l:'За екраном ми хмуримося, і м’язи лоба втомлюються. Розгладжуємо їх.',s:['h_forehead']},
+{t:'Очі й перенісся',l:'Втома очей від монітора дає важкість навколо очей. Вчимося точкам біля перенісся.',s:['h_eyes']},
+{t:'Потилиця',l:'Біль у голові часто починається з потилиці. Звільняємо основу черепа.',s:['h_occ']},
+{t:'Плечі тиснуть на голову',l:'Напружені плечі й потилиця — часте джерело головного болю.',s:['n_trap','h_occ']},
+{t:'Рутина для екранного дня',l:'Скроні та очі: коротка рутина після роботи за комп’ютером.',s:['h_temple','h_eyes']},
+{t:'Іспит: я вмію сам(а)',l:'Повна рутина «голова без напруги». Тепер ви вмієте знімати головний біль напруги самостійно.',s:['h_occ','h_temple','n_back']}]},
+{id:'legs',em:'🦵',n:'Легкі ноги',goal:'Позбутися болю',len:7,area:'ноги',promise:'За 7 днів поспіль ви повністю розберетеся, як знімати втому й біль у ногах самостійно.',stages:[['Знайомство',2],['Техніки',3],['Самостійність',2]],days:[
+{t:'Стопи тримають усе тіло',l:'Після довгого стояння втомлюється підошва. Вчимося розкочувати її м’ячем.',s:['f_sole']},
+{t:'Литки',l:'Литки допомагають крові підніматися вгору, тому їх масажують знизу вгору.',s:['g_calf']},
+{t:'Стегно спереду',l:'Передня поверхня стегна втомлюється від сходів і ходьби.',s:['g_thigh']},
+{t:'Задня поверхня стегна',l:'Тугі м’язи ззаду стегна обмежують рух і втомлюють ноги.',s:['g_ham']},
+{t:'Навколо коліна',l:'Коліну легше, коли м’язи над ним розслаблені.',s:['g_knee','g_thigh']},
+{t:'Знизу вгору',l:'Рутина від стоп до литок для легкості після робочого дня.',s:['g_calf','f_sole']},
+{t:'Іспит: я вмію сам(а)',l:'Повна рутина «легкі ноги». Тепер ви вмієте самостійно знімати втому з ніг.',s:['g_calf','g_ham','f_sole']}]},
+{id:'tone',em:'⚡',n:'Тонус і гнучкість',goal:'Тонус м’язів',len:14,area:'тіло',promise:'За 14 днів поспіль ви навчитеся самостійно підтримувати тонус і гнучкість усього тіла за 10 хвилин на день.',stages:[['Розминка тіла',6],['Глибше',4],['Рутини',4]],days:[
+{t:'Шия й плечі',l:'Починаємо із зони, яка напружується майже в усіх.',s:['n_back','n_trap']},
+{t:'Груди й спина',l:'Баланс спереду й ззаду дає рівну поставу.',s:['c_pec','b_mid']},
+{t:'Поперек і сідниці',l:'Центр тіла: розслабляємо після сидіння.',s:['l_low','l_glute']},
+{t:'Стегна',l:'Великі м’язи ніг: спереду й ззаду.',s:['g_thigh','g_ham']},
+{t:'Литки й стопи',l:'Основа, на якій ви стоїте весь день.',s:['g_calf','f_sole']},
+{t:'Руки',l:'Передпліччя й кисті від мишки й телефону.',s:['a_fore','a_hand']},
+{t:'Верх і низ',l:'Поєднуємо зони в одну рутину.',s:['n_trap','b_mid','l_low']},
+{t:'Голова і шия',l:'Знімаємо напругу з голови.',s:['h_temple','n_back']},
+{t:'Глибокі точки спини',l:'Довше утримання в складних точках.',s:['c_pec','b_scap']},
+{t:'Задня лінія тіла',l:'Сідниці й задня поверхня стегна як один ланцюжок.',s:['l_glute','g_ham']},
+{t:'Ноги повністю',l:'Стегно й зона навколо коліна.',s:['g_thigh','g_knee']},
+{t:'Від стоп до рук',l:'Рутина для тих, хто багато ходить і працює руками.',s:['g_calf','f_sole','a_fore']},
+{t:'Офісне перезавантаження',l:'Плечі, груди, поперек після робочого дня.',s:['n_trap','c_pec','l_low']},
+{t:'Іспит: я вмію сам(а)',l:'Ваша повна рутина тонусу. Тепер ви знаєте, як підтримувати тіло самостійно.',s:['b_mid','l_glute','g_calf']}]}];
+const ZC={neck:'neck',chest:'neck',head:'head',upper:'back',lower:'back',legs:'legs',feet:'legs',arm:'tone'};
+const courseFor=z=>COURSES.find(c=>c.id===ZC[z]);
+const curCourse=()=>D.course&&COURSES.find(c=>c.id===D.course.id);
+const dayMin=day=>Math.max(3,Math.round(day.s.reduce((a,id)=>a+G[id].reduce((b,x)=>b+x.s,0),0)/60));
+function stageOf(c,i){let acc=0;for(let k=0;k<c.stages.length;k++){const n=c.stages[k][1];if(i<acc+n)return {k:k,name:c.stages[k][0],from:acc,to:acc+n-1};acc+=n}return {k:0,name:'',from:0,to:0}}
+function dayState(c,i){
+const done=D.course.done||{};
+if(done[i+1])return 'done';
+let first=0;while(first<c.len&&done[first+1])first++;
+if(i!==first)return 'lock';
+if(i===0||D.demo)return 'cur';
+const prev=done[i];
+return prev&&prev<today()?'cur':'wait';
+}
+function startCourse(id){D.course={id:id,start:today(),done:{},pre:{},post:{}};save();renderPath()}
+
+function renderGoals(){
+top('path');
+const c=curCourse();
+M.innerHTML=`<h1>Оберіть ціль 🎯</h1><p class="lead">Щодня 5–10 хвилин, один крок за раз, як у Duolingo. Ви не лише знімаєте біль, а й вчитеся піклуватися про себе самостійно.</p>
+${c?`<div class="note">Зараз у вас курс «${c.n}». Якщо оберете іншу ціль, прогрес курсу почнеться заново. Стрік і щоденник збережуться.</div><div style="height:12px"></div>`:''}
+${COURSES.map(x=>`<button class="goal" data-c="${x.id}"><div class="em">${x.em}</div><div><b>${x.n}</b><small>${x.goal} · ${x.len} днів · 5–10 хв на день</small><span>${x.promise}</span></div></button>`).join('')}
+${c?'<button class="btn ghost" id="bk">← Повернутися до свого шляху</button>':''}`;
+M.querySelectorAll('[data-c]').forEach(b=>{b.onclick=()=>startCourse(b.dataset.c)});
+const bk=$('#bk');if(bk)bk.onclick=renderPath;
+}
+
+function renderPath(){
+const c=curCourse();
+if(!c){renderGoals();return}
+top('path');
+const done=D.course.done||{};
+const n=Object.keys(done).length;
+const OFF=[0,46,70,46,0,-46,-70,-46];
+let html='',waiting=false;
+for(let i=0;i<c.len;i++){
+const sg=stageOf(c,i);
+if(i===sg.from)html+=`<div class="stage"><b>Етап ${sg.k+1} · ${sg.name}</b><span>Дні ${sg.from+1}–${sg.to+1}</span></div>`;
+const s=dayState(c,i);if(s==='wait')waiting=true;
+const last=i===c.len-1;
+const icon=s==='done'?'✓':s==='cur'?(last?'🏆':'⭐'):s==='wait'?'🌙':(last?'🏆':'🔒');
+html+=`<div class="node ${s}" style="--x:${OFF[i%8]}px"><button data-d="${i}" aria-label="День ${i+1}: ${c.days[i].t}">${icon}</button><span>День ${i+1}<br>${c.days[i].t}</span></div>`;
+}
+M.innerHTML=`<div class="panel"><div class="kick">${c.em} Ваша ціль · ${c.goal}</div><h1 style="margin:2px 0 4px">${c.n}</h1><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-weight:700"><span>${n} з ${c.len} днів</span><span>🔥 ${streak()} дн. поспіль</span></div><div class="prog"><i style="width:${Math.round(n/c.len*100)}%"></i></div></div>
+${weekStrip()}
+${waiting?'<div class="note">🌙 Сьогоднішній крок зроблено! Наступний відкриється завтра. Повертайтеся, щоб не втратити стрік.</div>':''}
+<div class="path">${html}</div>
+<div class="row"><button class="btn ghost" id="chg">🎯 Змінити ціль</button></div>
+${CONFIG.demo?`<label class="fine" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="demo" ${D.demo?'checked':''}> Тестовий режим: відкрити всі дні (для перегляду в салоні)</label>`:''}`;
+M.querySelectorAll('[data-d]').forEach(b=>{b.onclick=()=>{
+const i=+b.dataset.d,s=dayState(c,i);
+if(s==='lock'){toast('🔒 Спершу пройдіть попередні дні');return}
+if(s==='wait'){toast('🌙 Цей крок відкриється завтра');return}
+renderLesson(i);
+}});
+$('#chg').onclick=renderGoals;
+const dm=$('#demo');if(dm)dm.onchange=e=>{D.demo=e.target.checked;save();renderPath()};
+}
+
+function renderLesson(i){
+top('path');
+const c=curCourse(),day=c.days[i],sg=stageOf(c,i);
+const pre=D.course.pre[i+1]!=null?D.course.pre[i+1]:5;
+const post=D.course.post[i+1]!=null?D.course.post[i+1]:pre;
+const again=!!D.course.done[i+1];
+M.innerHTML=`<button class="back" id="bk">← До шляху</button>
+<div class="kick">День ${i+1} з ${c.len} · Етап ${sg.k+1}: ${sg.name}</div><h1>${day.t}</h1>
+<div class="meta"><span>⏱️ ≈ ${dayMin(day)} хв</span><span>${c.em} ${c.n}</span>${again?'<span>🔁 Повторення</span>':''}</div>
+<div class="learn"><b>📚 Сьогодні вчимося</b><p>${day.l}</p></div>
+<div class="panel"><h2 style="margin-top:4px">Як ${c.area} зараз?</h2><div class="range"><input type="range" id="pre" min="0" max="10" value="${pre}" aria-label="Біль або напруга до рутини"><span class="big" id="prev">${pre}/10</span></div></div>
+${day.s.map(id=>{const s=spot(id);return `<h3 class="sub">💆 ${s.n}</h3>`+G[id].map((x,k)=>stepHTML(s,x,k,G[id].length)).join('')}).join('')}
+<div class="panel"><h2 style="margin-top:4px">А тепер? 😌</h2><div class="range"><input type="range" id="post" min="0" max="10" value="${post}" aria-label="Біль або напруга після рутини"><span class="big" id="postv">${post}/10</span></div></div>
+<div class="row"><button class="btn" id="fin">✅ Завершити день ${i+1}</button></div>
+<p class="fine">Якщо під час вправ біль посилюється, зупиніться. Якщо він не минає, зверніться до лікаря.</p>`;
+bindTimers();
+const a=$('#pre'),b=$('#post');
+a.oninput=()=>{$('#prev').textContent=a.value+'/10'};
+b.oninput=()=>{$('#postv').textContent=b.value+'/10'};
+$('#bk').onclick=renderPath;
+$('#fin').onclick=()=>{
+const before=streak(),wasDone=!!D.course.done[i+1];
+if(!wasDone)D.course.done[i+1]=today();
+D.course.pre[i+1]=+a.value;D.course.post[i+1]=+b.value;
+D.mins=(D.mins||0)+dayMin(day);
+logPain(day.s[0],+b.value,null,'course');
+markActive();
+renderWin(i,!wasDone,before);
+};
+}
+
+function renderWin(i,fresh,before){
+top('path');
+const c=curCourse(),sg=stageOf(c,i),s=streak();
+const stageDone=fresh&&i===sg.to&&i<c.len-1;
+const finished=Object.keys(D.course.done).length>=c.len;
+const p1=D.course.pre[1],pl=D.course.post[c.len];
+let extra='';
+if(finished&&fresh){
+extra=`<div class="grad"><h2>🏆 Ціль досягнуто!</h2><p>${c.len} днів пройдено. ${c.promise.replace(/^За \d+ днів поспіль в/,'В')}</p>${p1!=null&&pl!=null?`<p style="font-size:20px;font-weight:800">Було ${p1}/10, стало ${pl}/10${p1>pl?' 🎉':''}</p>`:''}</div>
+<div class="row"><button class="btn" id="next">🎯 Обрати нову ціль</button><button class="btn ghost" id="book">💚 Підтримувальний сеанс у масажиста</button></div><p class="fine" id="bookp" hidden>Запис скоро з’явиться тут. Поки що напишіть своєму масажисту напряму 💚</p>`;
+}else{
+extra=`${stageDone?`<div class="banner"><b>🏅 Етап «${sg.name}» пройдено!</b><p style="margin:6px 0 0">Відкрито новий етап: «${c.stages[sg.k+1][0]}».</p></div>`:''}
+<div class="note">${fresh?'🌙 Наступний крок відкриється завтра. Повертайтеся, щоб стрік не згас!':'🔁 Повторення зараховано.'}</div>
+<div class="row"><button class="btn" id="back">До шляху →</button></div>`;
+}
+M.innerHTML=`<div class="win"><div class="flame">🔥</div><h1>${fresh?`День ${i+1} пройдено!`:'Чудова практика!'}</h1><p class="lead" style="font-size:18px"><b style="color:var(--ink)">${s} ${s===1?'день':s<5?'дні':'днів'} поспіль</b>${s>before?' · стрік виріс!':''}</p>${weekStrip()}</div>${extra}`;
+const bb=$('#back');if(bb)bb.onclick=renderPath;
+const nx=$('#next');if(nx)nx.onclick=renderGoals;
+const bk=$('#book');if(bk)bk.onclick=book;
+}
+
+/* ---------- щоденник болю ---------- */
+let ck={open:false,z:null,spot:null,inten:5};
+function lvl(n){return n==null?'':n===0?'p0':n<=3?'p1':n<=6?'p2':'p3'}
+function renderDiary(){
+top('diary');
+const E=D.diary.filter(e=>e&&typeof e.d==='string');
+const byDay={};E.forEach(e=>{byDay[e.d]=Math.max(byDay[e.d]==null?-1:byDay[e.d],e.inten)});
+const t=today();
+const start0=addDays(t,-27);const sh=(pd(start0).getDay()+6)%7;const start=addDays(start0,-sh);
+let cal=['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(w=>`<div class="wd">${w}</div>`).join('');
+for(let d=start,k=0;k<35;k++,d=addDays(d,1)){
+if(d>t){cal+=`<div class="fut"></div>`;continue}
+const v=byDay[d];cal+=`<div class="${lvl(v)}${d===t?' now':''}" title="${d}${v!=null?': '+v+'/10':''}">${pd(d).getDate()}</div>`;
+if(k===34)break;
+}
+const last30=E.filter(e=>e.d>=addDays(t,-29));
+const pain=last30.filter(e=>e.inten>0);
+const days=new Set(last30.map(e=>e.d));
+const free=[...days].filter(d=>byDay[d]===0).length;
+const avg=pain.length?(pain.reduce((a,e)=>a+e.inten,0)/pain.length).toFixed(1):'–';
+const zc={};pain.forEach(e=>{const s=spot(e.spot);if(s){zc[s.z]=(zc[s.z]||0)+1}});
+const zl=Object.keys(zc).sort((a,b)=>zc[b]-zc[a]);const zmax=zl.length?zc[zl[0]]:1;
+const wd=[0,0,0,0,0,0,0],wn=[0,0,0,0,0,0,0];E.forEach(e=>{const k=(pd(e.d).getDay()+6)%7;wd[k]+=e.inten;wn[k]++});
+const wa=wd.map((v,k)=>wn[k]?v/wn[k]:0);const wmax=Math.max(1,...wa);
+const worst=wa.indexOf(Math.max(...wa));
+const names=['понеділок','вівторок','середа','четвер','пʼятниця','субота','неділя'];
+let ins='';
+if(pain.length>=3){ins=`💡 Найчастіше болить: <b>${zn(zl[0]).toLowerCase()}</b>. Найважчий день тижня: <b>${names[worst]}</b> (у середньому ${wa[worst].toFixed(1)}/10).`}
+const zs=ck.z?SP.filter(s=>s.z===ck.z):[];
+M.innerHTML=`<h1>Щоденник болю 📓</h1><p class="lead">Відмічайте самопочуття щодня, і ви побачите, що й коли болить найчастіше.</p>
+<div class="panel"><h2 style="margin-top:4px">Як ви сьогодні?</h2>
+${ck.open?`<div class="chips">${ZONES.map(z=>chip(z.id,z.em+' '+z.n,ck.z===z.id)).join('')}</div>
+${ck.z?`<div class="chips" id="cks">${zs.map(s=>`<button class="chip" data-sp="${s.id}" aria-pressed="${ck.spot===s.id}">${s.n}</button>`).join('')}</div>`:''}
+${ck.spot?`<div class="range"><input type="range" id="cki" min="1" max="10" value="${ck.inten}" aria-label="Сила болю"><span class="big" id="ckv">${ck.inten}/10</span></div><div class="row"><button class="btn" id="cksave">💾 Записати</button></div>`:''}
+<button class="linkbtn" id="ckx">Скасувати</button>`:
+`<div class="row" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))"><button class="btn" id="ok0">😊 Нічого не болить</button><button class="btn ghost" id="hurt">🤕 Щось болить</button></div>`}
+</div>
+${E.length?`<div class="stats"><div><b>${streak()}</b><span>🔥 стрік</span></div><div><b>${free}</b><span>днів без болю</span></div><div><b>${avg}</b><span>середній біль</span></div></div>
+${ins?`<div class="insight">${ins}</div>`:''}
+<h2>Останні 4 тижні</h2><div class="cal">${cal}</div>
+<div class="legend"><span><i style="background:#8fe3b8"></i>без болю</span><span><i style="background:#ffe08a"></i>1–3</span><span><i style="background:#ffb36b"></i>4–6</span><span><i style="background:#ff6b6b"></i>7–10</span></div>
+${zl.length?`<h2>Що болить найчастіше</h2><div class="panel">${zl.map(z=>`<div class="bar"><span>${zn(z)}</span><i style="width:${Math.round(zc[z]/zmax*100)}%"></i><em>${zc[z]} р.</em></div>`).join('')}</div>`:''}
+<h2>Коли болить найбільше</h2><div class="panel">${names.map((w,k)=>`<div class="bar"><span>${w}</span><i style="width:${Math.round(wa[k]/wmax*100)}%;background:${k===worst&&pain.length>=3?'var(--pain)':'#ffb36b'}"></i><em>${wn[k]?wa[k].toFixed(1):'–'}</em></div>`).join('')}</div>
+<h2>Записи</h2><div class="panel"><ul class="log">${E.slice(-12).reverse().map(e=>{const s=spot(e.spot);return `<li><span>${WD[pd(e.d).getDay()]}, ${pd(e.d).getDate()}.${String(pd(e.d).getMonth()+1).padStart(2,'0')} · ${s?s.n:'Нічого не болить ✨'}</span><b>${e.inten}/10</b></li>`}).join('')}</ul></div>
+<div class="stats"><div><b>${best()}</b><span>рекорд стріку</span></div><div><b>${D.mins||0}</b><span>хв практики</span></div><div><b>${Object.keys((D.course&&D.course.done)||{}).length}</b><span>днів курсу</span></div></div>
+<button class="linkbtn" id="reset">Очистити всі дані</button>`:
+`<div class="note" style="margin-top:14px">Тут з’являться календар болю, найчастіші зони й день тижня, коли болить найбільше. Зробіть перший запис вище.</div>
+${CONFIG.demo?'<button class="btn ghost" style="margin-top:12px" id="seed">👀 Показати приклад заповненого щоденника</button>':''}`}`;
+const on=(id,f)=>{const el=$('#'+id);if(el)el.onclick=f};
+on('ok0',()=>{logPain(null,0,null,'diary');markActive();toast('✨ Записано: нічого не болить');renderDiary()});
+on('hurt',()=>{ck={open:true,z:null,spot:null,inten:5};renderDiary()});
+on('ckx',()=>{ck={open:false,z:null,spot:null,inten:5};renderDiary()});
+if(ck.open){
+M.querySelectorAll('.panel .chips:first-of-type [data-k]').forEach(b=>{b.onclick=()=>{ck.z=b.dataset.k;ck.spot=null;renderDiary()}});
+M.querySelectorAll('[data-sp]').forEach(b=>{b.onclick=()=>{ck.spot=b.dataset.sp;renderDiary()}});
+const r=$('#cki');if(r)r.oninput=()=>{ck.inten=+r.value;$('#ckv').textContent=ck.inten+'/10'};
+on('cksave',()=>{logPain(ck.spot,ck.inten,null,'diary');markActive();ck={open:false,z:null,spot:null,inten:5};toast('💾 Записано в щоденник');renderDiary()});
+}
+on('seed',()=>{seed();toast('👀 Це приклад. Очистити можна внизу щоденника');renderDiary()});
+on('reset',()=>{D=blank();save();renderDiary()});
+}
+
+function seed(){
+const t=today();const zs=['n_trap','n_back','h_temple','l_low','b_mid'];
+D.diary=[];
+for(let i=27;i>=0;i--){
+const d=addDays(t,-i);const w=pd(d).getDay();
+if(i%5===3)continue;
+const mon=w===1||w===2;
+const v=i<5?Math.max(0,3-Math.floor((5-i)/2)):(w===0||w===6)?(i%3?0:2):mon?6+(i%3):3+(i%3);
+D.diary.push({d:d,spot:v?zs[i%zs.length]:null,inten:v,ch:null,src:'demo'});
+}
+D.active=[];for(let i=6;i>=1;i--)D.active.push(addDays(t,-i));
+D.course={id:'neck',start:addDays(t,-4),done:{1:addDays(t,-4),2:addDays(t,-3),3:addDays(t,-2),4:addDays(t,-1)},pre:{1:7,2:6,3:6,4:5},post:{1:5,2:4,3:4,4:3}};
+D.mins=32;save();
+}
+
+document.querySelectorAll('.tabs button').forEach(b=>{b.onclick=()=>{const t=b.dataset.t;if(t==='map'){top('map');renderMap()}else if(t==='path')renderPath();else renderDiary()}});
+$('#fire').onclick=renderPath;
+
+const HIT={
+front:[['neck','<rect x="84" y="84" width="32" height="20"'],['chest','<rect x="56" y="104" width="88" height="76"'],['belly','<rect x="58" y="180" width="84" height="122"'],['legs','<rect x="60" y="302" width="80" height="174"'],['head','<ellipse cx="100" cy="46" rx="36" ry="40"'],['arm','<rect x="12" y="112" width="44" height="214"'],['arm','<rect x="144" y="112" width="44" height="214"'],['feet','<rect x="54" y="476" width="92" height="36"']],
+back:[['neck','<rect x="52" y="80" width="96" height="36"'],['upper','<rect x="56" y="116" width="88" height="86"'],['lower','<rect x="56" y="202" width="88" height="104"'],['legs','<rect x="60" y="306" width="80" height="170"'],['head','<ellipse cx="100" cy="42" rx="36" ry="38"'],['arm','<rect x="12" y="112" width="44" height="214"'],['arm','<rect x="144" y="112" width="44" height="214"'],['feet','<rect x="54" y="476" width="92" height="36"']]};
+
+function renderMap(){
+setTab('map');
+const v=st.v;
+const hits=HIT[v].map(h=>`${h[1]} class="hit" data-z="${h[0]}" tabindex="0" role="button" aria-label="${zn(h[0])}"/>`).join('');
+M.innerHTML=`<h1>${uname?'Привіт, '+esc(uname)+'! ':''}Що болить? 🌿</h1><p class="lead">Торкніться місця на тілі, і я підкажу, як зняти біль самомасажем.</p>
+<div class="film map"><div class="seg" role="group" aria-label="Вигляд тіла"><button data-v="front" aria-pressed="${v==='front'}">Спереду</button><button data-v="back" aria-pressed="${v==='back'}">Ззаду</button></div>${fig(v,'0 0 200 520',[],0,[],hits,'Тіло людини')}<p class="cap" id="cap">${v==='front'?'Спина, поперек і литки — на вигляді ззаду 👆':'Торкніться зони, яка турбує'}</p></div>
+<div class="chips">${ZONES.map(z=>`<button class="chip" data-z="${z.id}">${z.em} ${z.n}</button>`).join('')}</div>
+<button class="btn ghost" id="toVoice">🎙️ Розповісти своїми словами</button>`;
+M.querySelectorAll('.seg button').forEach(b=>{b.onclick=()=>{st.v=b.dataset.v;renderMap()}});
+M.querySelectorAll('[data-z]').forEach(el=>{
+const go=()=>{st.z=el.getAttribute('data-z');renderSpots()};
+el.addEventListener('click',go);
+el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}});
+if(el.tagName.toLowerCase()!=='button'){el.addEventListener('mouseenter',()=>{const c=$('#cap');if(c)c.textContent=zn(el.getAttribute('data-z'))})}
+});
+$('#toVoice').onclick=renderVoice;
+}
+
+function renderSpots(){
+top();
+const z=ZONES.find(x=>x.id===st.z);
+const list=SP.filter(s=>s.z===st.z);
+M.innerHTML=`<button class="back" id="bk">← До карти тіла</button><h1>${z.em} ${z.n}: де саме?</h1><p class="lead">Оберіть місце, яке найбільше схоже на ваше.</p>
+<div class="grid">${list.map(s=>`<button class="card" data-s="${s.id}"><div class="film">${spotFig(s)}</div><b>${s.n}</b><span>${s.h}</span></button>`).join('')}</div>`;
+$('#bk').onclick=()=>{top();renderMap()};
+M.querySelectorAll('[data-s]').forEach(b=>{b.onclick=()=>{if(st.spot!==b.dataset.s)st.ch=null;st.spot=b.dataset.s;st.fromVoice=false;renderQ()}});
+}
+
+function renderQ(){
+top();
+const s=spot(st.spot);
+const chs=CHZ[s.z]||CHZ.def;
+if(st.ch&&!chs.includes(st.ch))st.ch=null;
+const fls=FLZ[s.z];
+M.innerHTML=`<button class="back" id="bk">← ${st.fromVoice?'Змінити опис':'Інше місце'}</button>
+<div class="head"><div class="film">${spotFig(s)}</div><div><h1>${st.fromVoice?'Перевірте, чи я правильно зрозумів':s.n}</h1><p class="lead" style="margin:0">${st.fromVoice?'📍 '+s.n+'. Доповніть, якщо чогось бракує.':'Кілька коротких питань, щоб підібрати правильні рухи.'}</p></div></div>
+<h2>🌡️ Який біль?</h2><div class="chips" id="ch">${chs.map(c=>chip(c,CH[c],st.ch===c)).join('')}</div>
+<h2>📊 Наскільки сильно?</h2><div class="panel range"><input type="range" id="inten" min="1" max="10" value="${st.inten}" aria-label="Сила болю від 1 до 10"><span class="big" id="iv">${st.inten}/10</span></div>
+<h2>⏱️ Як давно?</h2><div class="chips" id="du">${Object.keys(DUR).map(d=>chip(d,DUR[d],st.dur===d)).join('')}</div>
+<h2>🚩 Чи є щось із цього?</h2><div class="panel checks">${fls.map(f=>`<label><input type="checkbox" value="${f}" ${st.fl.includes(f)?'checked':''}><span>${FL[f]}</span></label>`).join('')}</div>
+<p class="err" id="err" role="alert"></p><button class="btn" id="nx">Далі →</button>`;
+const pick=(box,key)=>{box.querySelectorAll('.chip').forEach(b=>{b.onclick=()=>{st[key]=b.dataset.k;box.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))}})};
+pick($('#ch'),'ch');pick($('#du'),'dur');
+const r=$('#inten');r.oninput=()=>{st.inten=+r.value;$('#iv').textContent=st.inten+'/10'};
+$('#bk').onclick=()=>{if(st.fromVoice)renderVoice();else{st.z=s.z;renderSpots()}};
+$('#nx').onclick=()=>{
+if(!st.ch){$('#err').textContent='Оберіть, який біль 🙂';return}
+if(!st.dur){$('#err').textContent='Оберіть, як давно болить 🙂';return}
+st.fl=[...M.querySelectorAll('.checks input:checked')].map(i=>i.value);
+if(s.z==='belly'&&(st.ch==='sharp'||st.inten>=7))st.fl.push('bellysev');
+if(st.fl.length)renderStop();else renderSum();
+};
+}
+
+function renderStop(){
+top();
+M.innerHTML=`<button class="back" id="bk">← Назад до питань</button><div class="stop"><h1>Зараз масаж краще не робити 🙏</h1><p>Ви позначили: ${st.fl.map(f=>FL[f].toLowerCase()).join('; ')}.</p><p>Такі симптоми варто показати лікарю. Якщо вони з’явилися раптово або швидко посилюються, телефонуйте <b>103</b> або <b>112</b>.</p></div><div class="row"><button class="btn ghost" id="rs">Почати спочатку</button></div>`;
+$('#bk').onclick=renderQ;
+$('#rs').onclick=restart;
+}
+
+function cautions(){
+const n=[];
+if(st.inten>=8)n.push('⚠️ Біль сильний: працюйте лише легким тиском. Якщо за 1–2 дні не легшає, покажіться лікарю.');
+if(st.ch==='sharp')n.push('⚠️ Гострий біль: масажуйте навколо болючої точки, а не просто на ній.');
+if(st.dur==='weeks')n.push('🩺 Біль тримається тижнями: варто показатися лікарю чи фізіотерапевту, а самомасаж робити як доповнення.');
+if(st.ch==='pulse'&&st.spot.indexOf('h_')===0)n.push('💧 Пульсівний головний біль: випийте води, провітріть кімнату, приглушіть світло. Масажуйте дуже м’яко.');
+if(st.spot.indexOf('k_')===0)n.push('🍽️ Живіт не масажуйте одразу після їжі. Якщо біль посилюється, з’являється температура чи нудота, зверніться до лікаря.');
+if(st.ch==='cramp'&&st.spot.indexOf('g_')===0)n.push('🦵 Судома: потягніть носок на себе й тримайте, поки м’яз не відпустить. Потім робіть масаж.');
+return n;
+}
+
+function renderSum(){
+top();
+const s=spot(st.spot);
+M.innerHTML=`<button class="back" id="bk">← Змінити відповіді</button><h1>Правильно розумію? 🤔</h1>
+<div class="sum"><div class="film">${spotFig(s)}</div></div>
+<ul class="facts"><li><span>📍 Де</span><b>${s.n}</b></li><li><span>🌡️ Який</span><b>${CH[st.ch]}</b></li><li><span>📊 Сила</span><b>${st.inten}/10</b></li><li><span>⏱️ Як давно</span><b>${DUR[st.dur]}</b></li></ul>
+${cautions().map(n=>`<div class="note">${n}</div>`).join('')}
+<div class="row"><button class="btn" id="ok">✅ Так, покажи, як зняти біль</button><button class="btn ghost" id="ed">✏️ Ні, змінити</button></div>`;
+$('#bk').onclick=renderQ;$('#ed').onclick=renderQ;
+$('#ok').onclick=()=>{st.after=null;logPain(s.id,st.inten,st.ch,'map');renderGuide()};
+}
+
+function renderGuide(){
+top();
+const s=spot(st.spot),g=G[s.id];
+const tot=Math.max(1,Math.round(g.reduce((a,x)=>a+x.s,0)/60));
+const soft=st.inten>=7||st.ch==='sharp';
+const av=st.after==null?st.inten:st.after;
+M.innerHTML=`<button class="back" id="bk">← До підсумку</button><h1>Як зняти біль: ${s.n.toLowerCase()} ✨</h1>
+<div class="meta"><span>⏱️ ≈ ${tot} хв</span><span>✋ Тиск: ${soft?'легкий':'помірний, приємний'}</span><span>🔁 1–2 рази на день</span></div>
+${g.map((x,i)=>stepHTML(s,x,i,g.length)).join('')}
+<div class="panel"><h2 style="margin-top:4px">Як біль зараз? 😌</h2><div class="range"><input type="range" id="af" min="0" max="10" value="${av}" aria-label="Біль після масажу від 0 до 10"><span class="big" id="av">${av}/10</span></div><p class="res" id="res" aria-live="polite"></p>
+<button class="btn" id="book">💚 Записатися до масажиста</button><p class="fine" id="bookp" hidden>Запис скоро з’явиться тут. Поки що напишіть своєму масажисту напряму 💚</p></div>
+${courseFor(s.z)?`<div class="banner"><b>🎯 Хочете, щоб цей біль не повертався?</b><p style="margin:6px 0 10px">Курс «${courseFor(s.z).n}»: ${courseFor(s.z).len} днів по 5–10 хвилин. ${courseFor(s.z).promise}</p><button class="btn" id="tocourse">Почати шлях 🔥</button></div>`:''}
+<div class="row"><button class="btn ghost" id="rs">🔄 Інша зона болю</button></div>
+<p class="fine">Це поради із самомасажу, а не діагноз і не лікування. Не масажуйте місця з ранами, набряком, почервонінням або після травми. Якщо біль не минає чи посилюється, зверніться до лікаря.</p>`;
+bindTimers();
+const tc=$('#tocourse');if(tc)tc.onclick=()=>startCourse(courseFor(s.z).id);
+let marked=false;
+const af=$('#af');
+const showRes=()=>{const a=st.after,d=st.inten-a;$('#av').textContent=a+'/10';$('#res').textContent=d>0?`Було ${st.inten}, стало ${a}. Мінус ${d} 🎉`:d===0?'Поки без змін. Повторіть через кілька годин або запишіться до масажиста.':'Стало гірше? Зупиніться й не повторюйте. Якщо біль посилюється, зверніться до лікаря.'};
+af.oninput=()=>{st.after=+af.value;showRes()};
+af.onchange=()=>{if(!marked){marked=true;logPain(s.id,st.after,st.ch,'map');markActive();toast('🔥 Записано в щоденник. Стрік: '+streak())}};
+if(st.after!=null)showRes();
+$('#book').onclick=book;
+$('#bk').onclick=renderSum;
+$('#rs').onclick=restart;
+}
+
+let dic=null,smp=null,listening=false;
+function renderVoice(){
+top();
+M.innerHTML=`<button class="back" id="bk">← До карти тіла</button><h1>Розкажіть, що болить 🎙️</h1><p class="lead">Де болить, який біль, наскільки сильно й відколи. Я складу підсумок і підберу рухи.</p>
+<div class="vrow" id="vr"${dic?'':' hidden'}><button class="mic" id="mic" aria-label="Надиктувати голосом">🎙️</button><span class="live" id="live">Натисніть і говоріть</span></div>
+<textarea id="txt" aria-label="Опис болю" placeholder="Наприклад: другий день тисне в скронях, наче обруч, десь на 6 з 10"></textarea>
+<div class="chips">${EX.map((e,i)=>`<button class="chip" data-e="${i}">${e}</button>`).join('')}</div>
+<p class="err" id="err" role="alert"></p><button class="btn" id="go">🔍 Розібрати</button>`;
+const t=$('#txt');t.value=st.text||'';
+t.oninput=()=>{st.text=t.value};
+M.querySelectorAll('[data-e]').forEach(b=>{b.onclick=()=>{t.value=EX[+b.dataset.e];st.text=t.value}});
+$('#bk').onclick=()=>{if(dic&&listening)dic.stop().catch(()=>{});top();renderMap()};
+$('#mic').onclick=()=>{
+if(!dic)return;
+if(listening){dic.stop().catch(()=>{});return}
+dic.start().catch(e=>{const c=String((e&&(e.code||e.message))||e);if(c.indexOf('not_granted')>-1){dic=null;const v=$('#vr');if(v)v.hidden=true}});
+};
+$('#go').onclick=parse;
+}
+
+function kw(text){
+const s=text.toLowerCase().replace(/[’`ʼ]/g,"'");
+const R=[['k_low',/низ.{0,4} живот|місячн|менстру/],['k_belly',/живі?о?т|здут|кишк|гази/],['c_pec',/ключиц|грудн.{0,3} м'яз|в грудях|у грудях|груди/],['l_glute',/віддає в ног/],['g_calf',/литк|ікр/],['g_knee',/колін/],['g_ham',/задн.{0,16}стегн|стегн.{0,6} ззаду|ззаду.{0,6}стегн/],['g_thigh',/стегн|квадрицепс|ноги?(?![а-яіїєґ'])|ногу/],['f_sole',/підошв|стоп[аиіу](?![а-яіїєґ'])|п'ят(а|і|у|к)/],['a_hand',/долон|кист|пальц/],['a_fore',/передпліч|зап'яст|мишк|лікт/],['l_glute',/сідниц|сідничн|віддає в ног/],['l_low',/поперек|нижн.{0,6} спин/],['b_scap',/під лопатк/],['b_mid',/лопатк|верх.{0,4} спин/],['n_trap',/плеч|трапец/],['n_side',/бік шиї|збоку шиї|шия збоку/],['h_occ',/потилиц|основ.{0,4} череп|задн.{0,8} голов/],['n_back',/ши[яюї](?![а-яіїєґ'])|шию/],['h_eyes',/оч[іей](?![а-яіїєґ'])|перенісс|брів|брови/],['h_forehead',/(^|[^а-яіїєґ'])лоб/],['h_temple',/скрон|голов|мігрен/]];
+const C=[['bloat',/здут|розпира|гази/],['cramp',/спазм|судом|крутить|звело/],['press',/стиска|тисне|обруч|давить/],['pulse',/пульс|стукає|б'є/],['sharp',/гостр|стріля|простріл|колю|ріже/],['stiff',/скут|забит|затерп|не можу повернути|тягне/],['ache',/ниє|ниюч|тупий|ломить/]];
+const D=[['weeks',/тижн|місяц|давно|рік|постійно/],['days',/днів|дні(?![а-яіїєґ'])|день|вчора|другий|третій|кілька/],['today',/сьогодні|зранку|щойно|годин/]];
+const F=[['trauma',/травм|впав|упав|удар|аварі/],['numb',/онім|поколю|німі|слабкість у (руц|ноз)/],['fever',/температур|лихоман/],['worst',/раптов|найсильніш|вибух/],['vision',/двоїть|погано бачу|перекос|важко говорити/],['chest',/у грудях|в грудях|задишк|щелеп|в ліву руку/],['pelvic',/сечовип|в паху|у паху/],['vomit',/нудот|нудить|блюв|кров/],['rlq',/праворуч унизу|справа внизу|твердий живіт/],['preg',/вагітн/],['swell',/набряк|почервон|гаряч/]];
+const first=L=>{for(const x of L)if(x[1].test(s))return x[0];return null};
+let n=null;const m=s.match(/(\d{1,2})\s*(?:з|із|\/|на)\s*10/)||s.match(/на\s*(\d{1,2})\b/);
+if(m){const k=+m[1];if(k>=1&&k<=10)n=k}
+return {spot:first(R),ch:first(C),inten:n,dur:first(D),flags:F.filter(x=>x[1].test(s)).map(x=>x[0])};
+}
+
+async function ai(text){
+if(!smp)return null;
+const prompt=`Ти розбираєш опис болю українською для застосунку самомасажу. Поверни ЛИШЕ JSON без пояснень: {"spot":id або null,"ch":id або null,"inten":ціле 1-10 або null,"dur":id або null,"flags":[id]}.
+spot: ${SP.map(s=>s.id+' = '+s.n).join('; ')}.
+ch: ${Object.keys(CH).map(k=>k+' = '+CH[k]).join('; ')}.
+dur: today = сьогодні; days = кілька днів; weeks = тижні й довше.
+flags (лише якщо людина прямо це згадала): ${Object.keys(FL).map(k=>k+' = '+FL[k]).join('; ')}.
+Якщо болить голова без уточнення місця, обери h_temple. Не вигадуй того, чого немає в тексті.
+Опис: """${text.slice(0,1500)}"""`;
+let v=null;
+if(typeof smp.json==='function'){v=await smp.json(prompt,{modelTier:'quick'})}
+else{const r=await smp(prompt,{modelTier:'quick'});const j=(r&&r.text||'').match(/\{[\s\S]*\}/);v=j?JSON.parse(j[0]):null}
+if(!v||typeof v!=='object')return null;
+return {spot:spot(v.spot)?v.spot:null,ch:CH[v.ch]?v.ch:null,inten:Number.isInteger(v.inten)&&v.inten>=1&&v.inten<=10?v.inten:null,dur:DUR[v.dur]?v.dur:null,flags:Array.isArray(v.flags)?v.flags.filter(f=>FL[f]):[]};
+}
+
+async function parse(){
+const text=($('#txt').value||'').trim();
+const err=$('#err'),go=$('#go');
+if(text.length<3){err.textContent='Опишіть хоча б кількома словами, що болить 🙂';return}
+err.textContent='';go.disabled=true;go.textContent='⏳ Розбираю…';
+if(dic&&listening){try{await dic.stop()}catch(e){}}
+let a=null;
+try{a=await ai(text)}catch(e){a=null}
+const k=kw(text);
+const r=a&&a.spot?a:k;
+r.flags=[...new Set([...(r.flags||[]),...k.flags])];
+if(!r.ch)r.ch=k.ch;if(!r.dur)r.dur=k.dur;if(r.inten==null)r.inten=k.inten;
+if(!$('#go'))return;
+go.disabled=false;go.textContent='🔍 Розібрати';
+if(!r.spot){err.textContent='Не зрозумів, де саме болить. Додайте місце (наприклад, «шия» чи «поперек») або поверніться до карти тіла.';return}
+st.spot=r.spot;st.z=spot(r.spot).z;st.ch=r.ch;st.dur=r.dur;st.inten=r.inten||5;st.fl=r.flags;st.fromVoice=true;
+renderQ();
+}
+
+function restart(){const v=st.v;st=fresh();st.v=v;top();renderMap()}
+
+hdr();
+renderMap();
+cloudLoad(()=>{if(curTab==='path')renderPath();else if(curTab==='diary')renderDiary()});
+
+(async()=>{
+try{
+const c=window.claude;
+if(!c||typeof c.use!=='function')return;
+const res=await Promise.all([c.use('dictation').catch(()=>null),c.use('sample').catch(()=>null)]);
+dic=res[0];smp=res[1];
+if(dic){
+dic.onPartial(o=>{const l=$('#live');if(l)l.textContent=(o&&o.text)||'…'});
+dic.onFinal(o=>{const t=$('#txt');if(t&&o&&o.text){t.value=(t.value+' '+o.text).trim();st.text=t.value}});
+dic.onState(o=>{listening=!!o&&o.state==='listening';const m=$('#mic');if(m)m.classList.toggle('on',listening);const l=$('#live');if(l&&!listening)l.textContent='Натисніть і говоріть'});
+const vr=$('#vr');if(vr)vr.hidden=false;
+}
+}catch(e){}
+})();
+}
+</script>
+</body>
+</html>
